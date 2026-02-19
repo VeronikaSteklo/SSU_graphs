@@ -61,7 +61,11 @@ class Graph:
         added_edges = 0
         while added_edges < num_edges:
             u = random.choice(vertices)
-            v = random.choice(vertices)
+            if is_directed:
+                v = random.choice(vertices)
+            else:
+                other_vertices = [v for v in vertices if v != u]
+                v = random.choice(other_vertices)
 
             if v not in instance._adj_list[u]:
                 weight = round(random.uniform(1.0, 10.0), 1) if is_weighted else 1.0
@@ -95,6 +99,9 @@ class Graph:
         if v not in self._adj_list:
             raise GraphError(f"Вершины '{v}' не существует.")
 
+        if not self.is_directed and u == v:
+            raise GraphError(f"В неориентированном графе не должно быть петель")
+
         if v in self._adj_list[u]:
             raise GraphError(f"Ребро из '{u}' в '{v}' уже существует.")
 
@@ -103,10 +110,22 @@ class Graph:
             if u != v:
                 self._adj_list[v][u] = weight
 
+    def change_weight(self, u: str, v: str, weight: float = 1.0):
+        if not self.is_weighted:
+            raise GraphError(f"Граф невзвешенный, весов нет!")
+        if u not in self._adj_list:
+            raise GraphError(f"Вершины '{u}' не существует.")
+        if v not in self._adj_list:
+            raise GraphError(f"Вершины '{v}' не существует.")
+
+        self._adj_list[u][v] = weight
+
     def remove_edge(self, u: str, v: str):
         """Удаляет ребро (дугу) из u в v."""
         if u not in self._adj_list:
             raise GraphError(f"Вершина '{u}' не найдена.")
+        if v not in self._adj_list:
+            raise GraphError(f"Вершина '{v}' не найдена.")
         if v not in self._adj_list[u]:
             raise GraphError(f"Ребро из '{u}' в '{v}' не найдено.")
 

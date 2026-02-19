@@ -26,6 +26,7 @@ class GraphInterface:
             "2": self.add_link,
             "3": self.delete_node,
             "4": self.delete_link,
+            "5": self.change_weight,
             "0": self.back
         }
 
@@ -96,6 +97,8 @@ class GraphInterface:
         print("2. Добавить ребро")
         print("3. Удалить вершину")
         print("4. Удалить ребро")
+        if self.graph.is_weighted:
+            print("5. Изменить вес")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_edit, ch)
@@ -156,6 +159,13 @@ class GraphInterface:
     def delete_link(self):
         u, v = input("Узел 1: "), input("Узел 2: ")
         self.graph.remove_edge(u, v)
+
+    def change_weight(self):
+        u, v, weight = input("Узел 1: "), input("Узел 2: "), float(input("Новый вес: "))
+        while weight is None or weight < 0:
+            raise GraphError(f"Введите корректный вес!")
+        weight = float(input("Новый вес: "))
+        self.graph.change_weight(u, v, weight)
 
     def show_adj(self):
         print(self.graph)
