@@ -33,6 +33,8 @@ class GraphInterface:
         self.menu_view = {
             "1": self.show_adj,
             "2": self.draw,
+            "3": self.show_degrees,
+            "4": self.show_non_adjacent,
             "0": self.back
         }
 
@@ -107,6 +109,8 @@ class GraphInterface:
         print("\n--- ПРОСМОТР ---")
         print("1. Список смежности")
         print("2. Визуализация")
+        print("3. Степени всех вершин")
+        print("4. Найти не смежные вершины")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_view, ch)
@@ -177,6 +181,33 @@ class GraphInterface:
         fname = input("Имя файла: ")
         self.graph.to_json(fname)
         print("Сохранено.")
+
+    def show_degrees(self):
+        self._ensure_graph()
+        degrees = self.graph.get_vertex_degrees()
+
+        print("\n--- СТЕПЕНИ ВЕРШИН ---")
+        if not degrees:
+            print("Граф пуст.")
+            return
+
+        for node, val in degrees.items():
+            if isinstance(val, dict):
+                print(f"Вершина {node: <5} | Входящая: {val['in']}, Исходящая: {val['out']}, Всего: {val['total']}")
+            else:
+                print(f"Вершина {node: <5} | Степень: {val}")
+
+    def show_non_adjacent(self):
+        self._ensure_graph()
+        v = input("Введите имя целевой вершины: ")
+        try:
+            non_adj = self.graph.get_non_adjacent_vertices(v)
+            if not non_adj:
+                print(f"Вершина '{v}' смежна со всеми остальными вершинами.")
+            else:
+                print(f"Вершины, не смежные с '{v}': {', '.join(non_adj)}")
+        except GraphError as e:
+            print(f"[ОШИБКА]: {e}")
 
     def exit_app(self):
         print("\nЗавершение работы.")

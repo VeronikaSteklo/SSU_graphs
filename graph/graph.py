@@ -234,3 +234,33 @@ class Graph:
         plt.axis('off')
         plt.tight_layout()
         plt.show()
+
+    def get_vertex_degrees(self):
+        """ Возвращает словарь со степенями всех вершин.
+        Для ориентированного графа возвращает (входящая, исходящая, общая). """
+        degrees = {}
+        for v in self._adj_list:
+            if not self.is_directed:
+                degrees[v] = len(self._adj_list[v])
+            else:
+                out_degree = len(self._adj_list[v])
+                in_degree = sum(1 for u in self._adj_list if v in self._adj_list[u])
+                degrees[v] = {
+                    "in": in_degree,
+                    "out": out_degree,
+                    "total": in_degree + out_degree
+                }
+        return degrees
+
+    def get_non_adjacent_vertices(self, v: str):
+        """ Возвращает список всех вершин, не смежных с данной вершиной v. """
+        if v not in self._adj_list:
+            raise GraphError(f"Вершина '{v}' не найдена в графе.")
+
+        adjacent = set(self._adj_list[v].keys())
+
+        non_adjacent = [
+            node for node in self._adj_list
+            if node != v and node not in adjacent
+        ]
+        return non_adjacent
