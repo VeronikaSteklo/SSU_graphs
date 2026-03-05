@@ -293,3 +293,46 @@ class Graph:
             if node != v and node not in adjacent
         ]
         return non_adjacent
+
+    def is_tree_or_forest(self):
+        """ Проверяет, является ли орграф деревом, лесом или ни тем, ни другим. """
+        if not self.is_directed:
+            return "Метод предназначен только для ориентированных графов."
+
+        vertices = list(self._adj_list.keys())
+        if not vertices:
+            return "Пустой граф можно считать лесом."
+
+        degrees = self.get_vertex_degrees()
+        for v in vertices:
+            if degrees[v]['in'] > 1:
+                return "Не является ни деревом, ни лесом (у вершины степень захода > 1)."
+
+        visited = set()
+        rec_stack = set()
+
+        def has_cycle(v):
+            visited.add(v)
+            rec_stack.add(v)
+            for neighbor in self._adj_list[v]:
+                if neighbor not in visited:
+                    if has_cycle(neighbor):
+                        return True
+                elif neighbor in rec_stack:
+                    return True
+            rec_stack.remove(v)
+            return False
+
+        for node in vertices:
+            if node not in visited:
+                if has_cycle(node):
+                    return "Не является ни деревом, ни лесом (содержит цикл)."
+
+        roots = [v for v in vertices if degrees[v]['in'] == 0]
+
+        if len(roots) == 1:
+            return "дерево."
+        elif len(roots) > 1:
+            return "лес (несколько корней)."
+        else:
+            return "не является ни деревом, ни лесом."

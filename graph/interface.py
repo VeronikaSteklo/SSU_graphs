@@ -37,6 +37,7 @@ class GraphInterface:
             "2": self.draw,
             "3": self.show_degrees,
             "4": self.show_non_adjacent,
+            "5": self.show_is_tree_forest,
             "0": self.back
         }
 
@@ -115,6 +116,7 @@ class GraphInterface:
         print("2. Визуализация")
         print("3. Степени всех вершин")
         print("4. Найти не смежные вершины")
+        print("5. Проверка на дерево/лес")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_view, ch)
@@ -245,6 +247,10 @@ class GraphInterface:
                 print(f"Вершины, не смежные с '{v}': {', '.join(non_adj)}")
         except GraphError as e:
             print(f"[ОШИБКА]: {e}")
+
+    def show_is_tree_forest(self):
+        tree = self.graph.is_tree_or_forest()
+        print(f"Граф — {tree}")
 
     def exit_app(self):
         print("\nЗавершение работы.")

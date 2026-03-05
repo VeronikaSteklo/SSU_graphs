@@ -1,0 +1,14 @@
+{
+    "is_directed": true,
+    "is_weighted": true,
+    "adj_list": {
+        "a": {
+            "b": 10.0
+        },
+        "b": {},
+        "c": {
+            "V1": 3
+        },
+        "V1": {}
+    }
+}
