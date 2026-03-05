@@ -10,6 +10,8 @@ class GraphInterface:
             "1": self.create_empty,
             "2": self.load_json,
             "3": self.generate_random,
+            "4": self.combine_two_jsons,
+            "5": self.combine_with_another,
             "0": self.back
         }
 
@@ -88,6 +90,8 @@ class GraphInterface:
         print("1. Создать пустой")
         print("2. Создать из json")
         print("3. Сгенерировать новый случайный")
+        print("4. Объединить 2 графа из json")
+        print("5. Объединить текущий с другим (из json)")
         print("0. " + ("Назад" if self.graph else "Выход"))
         ch = input("> ")
         if ch == "0" and not self.graph: self.exit_app()
@@ -148,6 +152,39 @@ class GraphInterface:
         w = input("Взвешенный? (y/n): ").lower() == 'y'
         self.graph = Graph.from_random(n, m, d, w)
         print("Сгенерировано.")
+
+    def combine_with_another(self, ):
+        """Обработчик построения объединения."""
+        self._ensure_graph()
+        print("\nДля объединения нужно загрузить второй граф из файла.")
+        fname = input("Введите имя JSON-файла второго графа: ")
+
+        try:
+            g2 = Graph.from_json(fname)
+            self.graph = Graph.union(self.graph, g2)
+            print(f"Объединение выполнено успешно. Текущий граф теперь содержит {len(self.graph._adj_list)} вершин.")
+        except FileNotFoundError:
+            print("[ОШИБКА]: Файл не найден.")
+        except Exception as e:
+            print(f"[ОШИБКА при объединении]: {e}")
+
+    def combine_two_jsons(self):
+        file1 = input("Введите имя первого JSON-файла: ")
+        file2 = input("Введите имя второго JSON-файла: ")
+
+        try:
+            g1 = Graph.from_json(file1)
+            g2 = Graph.from_json(file2)
+
+            self.graph = Graph.union(g1, g2)
+
+            print(f"\n[УСПЕХ]: Графы из '{file1}' и '{file2}' объединены.")
+            print(f"Итого вершин: {len(self.graph._adj_list)}")
+
+        except FileNotFoundError as e:
+            print(f"[ОШИБКА]: Один из файлов не найден ({e})")
+        except Exception as e:
+            print(f"[ОШИБКА]: {e}")
 
     def add_node(self):
         self.graph.add_vertex(input("Имя вершины: "))

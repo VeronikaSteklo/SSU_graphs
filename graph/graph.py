@@ -74,6 +74,35 @@ class Graph:
 
         return instance
 
+    @classmethod
+    def union(cls, g1, g2):
+        """ Построение объединения двух графов. """
+        if g1.is_directed != g2.is_directed:
+            raise GraphError("Нельзя объединить ориентированный и неориентированный графы.")
+
+        new_is_weighted = g1.is_weighted or g2.is_weighted
+        new_graph = cls(is_directed=g1.is_directed, is_weighted=new_is_weighted)
+
+        for v in g1._adj_list:
+            new_graph.add_vertex(v)
+        for u, v, w in g1.get_edge_list():
+            new_graph.add_edge(u, v, w)
+
+        for v in g2._adj_list:
+            if v not in new_graph._adj_list:
+                new_graph.add_vertex(v)
+
+        for u, v, w in g2.get_edge_list():
+            if v in new_graph._adj_list[u]:
+                current_weight = new_graph._adj_list[u][v]
+                new_graph._adj_list[u][v] = current_weight + w
+                if not new_graph.is_directed:
+                    new_graph._adj_list[v][u] = current_weight + w
+            else:
+                new_graph.add_edge(u, v, w)
+
+        return new_graph
+
     def get_edge_list(self):
         """Возвращает список ребер в формате (откуда, куда, вес)."""
         edges = []
