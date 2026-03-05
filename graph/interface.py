@@ -38,6 +38,7 @@ class GraphInterface:
             "3": self.show_degrees,
             "4": self.show_non_adjacent,
             "5": self.show_is_tree_forest,
+            "6": self.show_shortest_to_set,
             "0": self.back
         }
 
@@ -117,6 +118,7 @@ class GraphInterface:
         print("3. Степени всех вершин")
         print("4. Найти не смежные вершины")
         print("5. Проверка на дерево/лес")
+        print("6. Расстояние до множества вершин")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_view, ch)
@@ -251,6 +253,23 @@ class GraphInterface:
     def show_is_tree_forest(self):
         tree = self.graph.is_tree_or_forest()
         print(f"Граф — {tree}")
+
+    def show_shortest_to_set(self):
+        self._ensure_graph()
+        raw_input = input("Введите имена целевых вершин через пробел: ")
+        target_list = raw_input.split()
+
+        if not target_list:
+            raise GraphError("Множество целей не может быть пустым.")
+
+        try:
+            results = self.graph.find_shortest_to_set_universal(target_list)
+
+            print(f"\nКратчайшие расстояния до ближайшей из {target_list}:")
+            for node, dist in results.items():
+                print(f"Вершина {node: <10} | Расстояние: {dist}")
+        except Exception as e:
+            print(f"[ОШИБКА]: {e}")
 
     def exit_app(self):
         print("\nЗавершение работы.")

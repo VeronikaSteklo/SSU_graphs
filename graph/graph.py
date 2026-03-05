@@ -4,6 +4,7 @@ import random
 import os
 import networkx as nx
 import matplotlib.pyplot as plt
+from collections import deque
 
 
 class GraphError(Exception):
@@ -336,3 +337,35 @@ class Graph:
             return "лес (несколько корней)."
         else:
             return "не является ни деревом, ни лесом."
+
+    def find_shortest_to_set_universal(self, target_set: list) -> dict:
+        """ Находит кратчайшее расстояние от каждой вершины до ближайшей из target_set. """
+
+        for v in target_set:
+            if v not in self._adj_list:
+                raise GraphError(f"Вершина '{v}' не найдена.")
+
+        distances = {v: float('inf') for v in self._adj_list}
+        queue = deque()
+
+        for v in target_set:
+            distances[v] = 0
+            queue.append(v)
+
+        if self.is_directed:
+            predecessors = {v: [] for v in self._adj_list}
+            for u in self._adj_list:
+                for v in self._adj_list[u]:
+                    predecessors[v].append(u)
+
+        while queue:
+            current_v = queue.popleft()
+
+            neighbors = predecessors[current_v] if self.is_directed else self._adj_list[current_v]
+
+            for neighbor in neighbors:
+                if distances[neighbor] == float('inf'):
+                    distances[neighbor] = distances[current_v] + 1
+                    queue.append(neighbor)
+
+        return distances
