@@ -39,6 +39,7 @@ class GraphInterface:
             "4": self.show_non_adjacent,
             "5": self.show_is_tree_forest,
             "6": self.show_shortest_to_set,
+            "7": self.show_kruskal_mst,
             "0": self.back
         }
 
@@ -119,6 +120,7 @@ class GraphInterface:
         print("4. Найти не смежные вершины")
         print("5. Проверка на дерево/лес")
         print("6. Расстояние до множества вершин")
+        print("7. Минимальный каркас (Краскал)")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_view, ch)
@@ -269,6 +271,21 @@ class GraphInterface:
             for node, dist in results.items():
                 print(f"Вершина {node: <10} | Расстояние: {dist}")
         except Exception as e:
+            print(f"[ОШИБКА]: {e}")
+
+    def show_kruskal_mst(self):
+        self._ensure_graph()
+        try:
+            mst, weight = self.graph.find_mst_kruskal()
+            print(f"\nМинимальный каркас найден!")
+            print(f"Общий вес: {weight:.2f}")
+            print("Ребра каркаса:")
+            print(mst)
+
+            draw_mst = input("Визуализировать каркас? (y/n): ").lower() == 'y'
+            if draw_mst:
+                mst.visualize()
+        except GraphError as e:
             print(f"[ОШИБКА]: {e}")
 
     def exit_app(self):

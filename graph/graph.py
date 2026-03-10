@@ -369,3 +369,52 @@ class Graph:
                     queue.append(neighbor)
 
         return distances
+
+    def find_mst_kruskal(self):
+        """ Находит минимальное остовное дерево (каркас) методом Краскала. """
+        if self.is_directed:
+            raise GraphError("Алгоритм Краскала предназначен для неориентированных графов.")
+        if not self.is_weighted:
+            raise GraphError("Для поиска MST граф должен быть взвешенным.")
+
+        parent = {v: v for v in self._adj_list}
+        rank = {v: 0 for v in self._adj_list}
+
+        def find(v):
+            if parent[v] == v:
+                return v
+            parent[v] = find(parent[v])
+            return parent[v]
+
+        def union(u, v):
+            root_u = find(u)
+            root_v = find(v)
+            if root_u != root_v:
+                if rank[root_u] < rank[root_v]:
+                    parent[root_u] = root_v
+                elif rank[root_u] > rank[root_v]:
+                    parent[root_v] = root_u
+                else:
+                    parent[root_v] = root_u
+                    rank[root_u] += 1
+                return True
+            return False
+
+        edges = self.get_edge_list()
+        edges.sort(key=lambda x: x[2])
+
+        mst_graph = Graph(is_directed=False, is_weighted=True)
+        for v in self._adj_list:
+            mst_graph.add_vertex(v)
+
+        edges_count = 0
+        total_weight = 0
+
+        for u, v, weight in edges:
+            if find(u) != find(v):
+                union(u, v)
+                mst_graph.add_edge(u, v, weight)
+                total_weight += weight
+                edges_count += 1
+
+        return mst_graph, total_weight
