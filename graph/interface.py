@@ -279,6 +279,13 @@ class GraphInterface:
             mst, weight = self.graph.find_mst_kruskal()
             print(f"\nМинимальный каркас найден!")
             print(f"Общий вес: {weight:.2f}")
+            num_vertices = len(self.graph._adj_list)
+            num_edges = len(mst.get_edge_list())
+            if num_vertices > 0:
+                if num_edges == num_vertices - 1:
+                    print("Результат: Остовное дерево")
+                else:
+                    print(f"Результат: Остовный лес")
             print("Ребра каркаса:")
             print(mst)
 

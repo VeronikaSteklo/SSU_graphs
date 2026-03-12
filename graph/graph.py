@@ -377,6 +377,10 @@ class Graph:
         if not self.is_weighted:
             raise GraphError("Для поиска MST граф должен быть взвешенным.")
 
+        num_vertices = len(self._adj_list)
+        if num_vertices == 0:
+            return Graph(False, True), 0
+
         parent = {v: v for v in self._adj_list}
         rank = {v: 0 for v in self._adj_list}
 
@@ -411,6 +415,8 @@ class Graph:
         total_weight = 0
 
         for u, v, weight in edges:
+            if edges_count == num_vertices - 1:
+                break
             if find(u) != find(v):
                 union(u, v)
                 mst_graph.add_edge(u, v, weight)

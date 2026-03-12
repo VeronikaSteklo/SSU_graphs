@@ -1,0 +1,11 @@
+{
+    "is_directed": false,
+    "is_weighted": true,
+    "adj_list": {
+        "a": {},
+        "b": {},
+        "c": {},
+        "d": {},
+        "e": {}
+    }
+}
