@@ -19,7 +19,8 @@ class GraphInterface:
             "1": self.submenu_creation,
             "2": self.submenu_edit,
             "3": self.submenu_view,
-            "4": self.submenu_files,
+            "4": self.submenu_algorithms,
+            "5": self.submenu_files,
             "0": self.exit_app
         }
 
@@ -40,6 +41,13 @@ class GraphInterface:
             "5": self.show_is_tree_forest,
             "6": self.show_shortest_to_set,
             "7": self.show_kruskal_mst,
+            "0": self.back
+        }
+
+        self.menu_algorithms = {
+            "1": self.show_k_shortest_paths,
+            "2": self.show_floyd_warshall,
+            "3": self.show_negative_cycles,
             "0": self.back
         }
 
@@ -69,7 +77,8 @@ class GraphInterface:
         print("1. [Создание] (Начать заново / Сгенерировать другой)")
         print("2. [Редактирование] (Вершины / Ребра)")
         print("3. [Просмотр] (Список смежности / Рисунок)")
-        print("4. [Файлы] (Сохранить результат)")
+        print("4. [Алгоритмы путей] (Йен, Флойд, Беллман)")
+        print("5. [Файлы] (Сохранить результат)")
         print("0. Выход")
 
         ch = input("\nВыберите категорию: ")
@@ -124,6 +133,16 @@ class GraphInterface:
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_view, ch)
+
+    def submenu_algorithms(self):
+        self._ensure_graph()
+        print("\n--- АЛГОРИТМЫ ПОИСКА ПУТЕЙ ---")
+        print("1. K-кратчайших путей (Алгоритм Йена)")
+        print("2. Кратчайшие пути между всеми парами (Флойд-Уоршелл)")
+        print("3. Поиск пар с путями через отрицательные циклы")
+        print("0. Назад")
+        ch = input("> ")
+        self._execute_from_menu(self.menu_algorithms, ch)
 
     def submenu_files(self):
         print("\n--- ФАЙЛЫ ---")
@@ -294,6 +313,66 @@ class GraphInterface:
                 mst.visualize()
         except GraphError as e:
             print(f"[ОШИБКА]: {e}")
+
+    def show_k_shortest_paths(self):
+        if not self.graph.is_weighted:
+            print("[ОШИБКА]: Для этого алгоритма нужен взвешенный граф.")
+            return
+        start = input("Начальная вершина: ")
+        end = input("Конечная вершина: ")
+        k = int(input("Количество путей (k): "))
+
+        try:
+            paths = self.graph.find_k_shortest_paths(start, end, k)
+            if not paths:
+                print(f"Путей между {start} и {end} не найдено.")
+            else:
+                print(f"\nНайдено {len(paths)} кратчайших путей:")
+                for idx, (dist, path) in enumerate(paths, 1):
+                    print(f"{idx}. Путь: {' -> '.join(path)} | Вес: {dist:.2f}")
+        except GraphError as e:
+            print(f"[ОШИБКА]: {e}")
+
+    def show_floyd_warshall(self):
+        print("\n--- МАТРИЦА КРАТЧАЙШИХ ПУТЕЙ (Флойд-Уоршелл) ---")
+        dist_matrix = self.graph.all_pairs_shortest_paths_floyd()
+        nodes = list(self.graph._adj_list.keys())
+
+        # Шапка таблицы
+        header = f"{' ': <10}" + "".join([f"{n: <10}" for n in nodes])
+        print(header)
+        print("-" * len(header))
+
+        for u in nodes:
+            row = f"{u: <10}"
+            for v in nodes:
+                d = dist_matrix[u][v]
+                if d == float('inf'):
+                    val = "∞"
+                elif d == float('-inf'):
+                    val = "-∞"
+                else:
+                    val = f"{d:.1f}"
+                row += f"{val: <10}"
+            print(row)
+
+    def show_negative_cycles(self):
+        print("\nПроверка бесконечно малых весов...")
+        pairs = self.graph.find_negative_cycle_pairs_bellman()
+
+        if not pairs:
+            print("Отрицательных циклов не обнаружено.")
+            return
+
+        print("Обнаружены пути, проходящие через отрицательные циклы:")
+
+        from collections import defaultdict
+        impact_map = defaultdict(list)
+        for u, v in pairs:
+            impact_map[u].append(v)
+
+        for start_node, targets in impact_map.items():
+            print(f"    Из вершины '{start_node}' пути к узлам {', '.join(targets)} проходят через отрицательные циклы")
 
     def exit_app(self):
         print("\nЗавершение работы.")

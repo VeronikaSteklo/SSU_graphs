@@ -1,4 +1,5 @@
 import copy
+import heapq
 import json
 import random
 import os
@@ -424,3 +425,115 @@ class Graph:
                 edges_count += 1
 
         return mst_graph, total_weight
+
+    def find_k_shortest_paths(self, start: str, end: str, k: int):
+        """ Поиск k кратчайших путей между u и v (Алгоритм Йена + Дейкстра). """
+        if start not in self._adj_list or end not in self._adj_list:
+            raise GraphError("Вершины не найдены")
+
+        def dijkstra(temp_graph, start, end):
+            distances = {node: float('inf') for node in temp_graph._adj_list}
+            distances[start] = 0
+            paths = {node: [] for node in temp_graph._adj_list}
+            paths[start] = [start]
+            pq = [(0, start)]
+
+            while pq:
+                (dist, current) = heapq.heappop(pq)
+                if dist > distances[current]: continue
+                if current == end: return (dist, paths[end])
+
+                for neighbor, weight in temp_graph._adj_list[current].items():
+                    old_dist = distances[neighbor]
+                    new_dist = dist + weight
+                    if new_dist < old_dist:
+                        distances[neighbor] = new_dist
+                        paths[neighbor] = paths[current] + [neighbor]
+                        heapq.heappush(pq, (new_dist, neighbor))
+            return None
+
+        A = []
+        B = []
+
+        initial_path = dijkstra(self, start, end)
+        if not initial_path: return []
+        A.append(initial_path)
+
+        for i in range(1, k):
+            for j in range(len(A[-1][1]) - 1):
+                spur_node = A[-1][1][j]
+                root_path = A[-1][1][:j + 1]
+
+                edges_removed = []
+                for path_data in A:
+                    path = path_data[1]
+                    if len(path) > j and root_path == path[:j + 1]:
+                        u, v = path[j], path[j + 1]
+                        if v in self._adj_list[u]:
+                            weight = self._adj_list[u][v]
+                            edges_removed.append((u, v, weight))
+                            self.remove_edge(u, v)
+
+                spur_path_data = dijkstra(self, spur_node, end)
+                if spur_path_data:
+                    total_path = root_path[:-1] + spur_path_data[1]
+                    total_dist = sum(self.get_edge_weight(total_path[m], total_path[m + 1])
+                                     for m in range(len(total_path) - 1))
+                    if (total_dist, total_path) not in B:
+                        heapq.heappush(B, (total_dist, total_path))
+
+                for u, v, w in edges_removed:
+                    self.add_edge(u, v, w)
+
+            if not B: break
+            A.append(heapq.heappop(B))
+
+        return A
+
+    def get_edge_weight(self, u, v):
+        return self._adj_list[u][v]
+
+    def all_pairs_shortest_paths_floyd(self):
+        """ Поиск кратчайших путей для всех пар вершин (Алгоритм Флойда-Уоршелла). """
+        nodes = list(self._adj_list.keys())
+        dist = {u: {v: float('inf') for v in nodes} for u in nodes}
+
+        for u in nodes:
+            dist[u][u] = 0
+            for v, weight in self._adj_list[u].items():
+                dist[u][v] = weight
+
+        for k in nodes:
+            for i in nodes:
+                for j in nodes:
+                    if dist[i][j] > dist[i][k] + dist[k][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+        return dist
+
+    def find_negative_cycle_pairs_bellman(self):
+        """ Поиск всех пар вершин, между которыми существует путь сколь угодно малой длины.
+         (Алгоритм Беллмана-Форда для поиска отрицательных циклов). """
+        nodes = list(self._adj_list.keys())
+        inf_paths = []
+
+        for start_node in nodes:
+            dist = {node: float('inf') for node in nodes}
+            dist[start_node] = 0
+
+            for _ in range(len(nodes) - 1):
+                for u, v, w in self.get_edge_list():
+                    if dist[u] != float('inf') and dist[u] + w < dist[v]:
+                        dist[v] = dist[u] + w
+
+            affected_by_cycle = set()
+            for _ in range(len(nodes)):
+                for u, v, w in self.get_edge_list():
+                    if dist[u] != float('inf') and dist[u] + w < dist[v]:
+                        dist[v] = float('-inf')
+                        affected_by_cycle.add(v)
+
+            for target_node in nodes:
+                if dist[target_node] == float('-inf'):
+                    inf_paths.append((start_node, target_node))
+
+        return list(set(inf_paths))
