@@ -338,7 +338,6 @@ class GraphInterface:
         dist_matrix = self.graph.all_pairs_shortest_paths_floyd()
         nodes = list(self.graph._adj_list.keys())
 
-        # Шапка таблицы
         header = f"{' ': <10}" + "".join([f"{n: <10}" for n in nodes])
         print(header)
         print("-" * len(header))

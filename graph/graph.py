@@ -438,15 +438,21 @@ class Graph:
             paths[start] = [start]
             pq = [(0, start)]
 
+            visited = set()
             while pq:
                 (dist, current) = heapq.heappop(pq)
-                if dist > distances[current]: continue
-                if current == end: return (dist, paths[end])
+                if current in visited:
+                    continue
+                if current == end:
+                    return (dist, paths[end])
+                visited.add(current)
 
                 for neighbor, weight in temp_graph._adj_list[current].items():
-                    old_dist = distances[neighbor]
+                    if neighbor in visited:
+                        continue
+
                     new_dist = dist + weight
-                    if new_dist < old_dist:
+                    if new_dist < distances[neighbor]:
                         distances[neighbor] = new_dist
                         paths[neighbor] = paths[current] + [neighbor]
                         heapq.heappush(pq, (new_dist, neighbor))
@@ -503,7 +509,7 @@ class Graph:
             for v, weight in self._adj_list[u].items():
                 dist[u][v] = weight
 
-        for k in nodes:
+        for k in nodes: # k нельзя вставлять в конец
             for i in nodes:
                 for j in nodes:
                     if dist[i][j] > dist[i][k] + dist[k][j]:
