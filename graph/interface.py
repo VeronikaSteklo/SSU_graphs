@@ -48,6 +48,7 @@ class GraphInterface:
             "1": self.show_k_shortest_paths,
             "2": self.show_floyd_warshall,
             "3": self.show_negative_cycles,
+            "4": self.show_max_flow,
             "0": self.back
         }
 
@@ -77,7 +78,7 @@ class GraphInterface:
         print("1. [Создание] (Начать заново / Сгенерировать другой)")
         print("2. [Редактирование] (Вершины / Ребра)")
         print("3. [Просмотр] (Список смежности / Рисунок)")
-        print("4. [Алгоритмы путей] (Йен, Флойд, Беллман)")
+        print("4. [Алгоритмы путей] (Йен, Флойд, Беллман, Эдмондс-Карп)")
         print("5. [Файлы] (Сохранить результат)")
         print("0. Выход")
 
@@ -140,6 +141,7 @@ class GraphInterface:
         print("1. K-кратчайших путей (Алгоритм Йена)")
         print("2. Кратчайшие пути между всеми парами (Флойд-Уоршелл)")
         print("3. Поиск пар с путями через отрицательные циклы")
+        print("4. Нахождение максимального потока между вершинами")
         print("0. Назад")
         ch = input("> ")
         self._execute_from_menu(self.menu_algorithms, ch)
@@ -372,6 +374,16 @@ class GraphInterface:
 
         for start_node, targets in impact_map.items():
             print(f"    Из вершины '{start_node}' пути к узлам {', '.join(targets)} проходят через отрицательные циклы")
+
+    def show_max_flow(self):
+        self._ensure_graph()
+        s = input("Введите исток: ")
+        t = input("Введите сток: ")
+        try:
+            flow = self.graph.find_max_flow(s, t)
+            print(f"\nМаксимальный поток из {s} в {t}: {flow}")
+        except Exception as e:
+            print(f"[ОШИБКА]: {e}")
 
     def exit_app(self):
         print("\nЗавершение работы.")

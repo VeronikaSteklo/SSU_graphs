@@ -509,7 +509,7 @@ class Graph:
             for v, weight in self._adj_list[u].items():
                 dist[u][v] = weight
 
-        for k in nodes: # k нельзя вставлять в конец
+        for k in nodes:  # k нельзя вставлять в конец
             for i in nodes:
                 for j in nodes:
                     if dist[i][j] > dist[i][k] + dist[k][j]:
@@ -543,3 +543,50 @@ class Graph:
                     inf_paths.append((start_node, target_node))
 
         return list(set(inf_paths))
+
+    def find_max_flow(self, source: str, sink: str):
+        """Находит максимальный поток из истока в сток (Алгоритм Эдмондса-Карпа)."""
+        if source not in self._adj_list or sink not in self._adj_list:
+            raise GraphError("Указанные вершины истока или стока не найдены.")
+
+        residual_adj = {u: {} for u in self._adj_list}
+        for u in self._adj_list:
+            for v, weight in self._adj_list[u].items():
+                residual_adj[u][v] = weight
+                if u not in residual_adj[v]:
+                    residual_adj[v][u] = 0
+
+        max_flow = 0
+        parent = {}
+
+        def bfs():
+            visited = {node: False for node in residual_adj}
+            queue = deque([source])
+            visited[source] = True
+            while queue:
+                u = queue.popleft()
+                for v, capacity in residual_adj[u].items():
+                    if not visited[v] and capacity > 0:
+                        parent[v] = u
+                        visited[v] = True
+                        if v == sink:
+                            return True
+                        queue.append(v)
+            return False
+
+        while bfs():
+            path_flow = float('inf')
+            s = sink
+            while s != source:
+                path_flow = min(path_flow, residual_adj[parent[s]][s])
+                s = parent[s]
+
+            max_flow += path_flow
+            v = sink
+            while v != source:
+                u = parent[v]
+                residual_adj[u][v] -= path_flow
+                residual_adj[v][u] += path_flow
+                v = parent[v]
+
+        return max_flow
