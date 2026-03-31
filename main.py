@@ -1,3 +1,3 @@
-from graph.interface import GraphInterface
+from backend.graph.interface import GraphInterface
 
 GraphInterface().run()

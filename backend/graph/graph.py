@@ -7,6 +7,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
 
+import numpy as np
+
 
 class GraphError(Exception):
     """Базовый класс для ошибок в работе с графом."""
@@ -116,6 +118,13 @@ class Graph:
                     edges.append((u, v, weight))
                     visited.add(edge_id)
         return edges
+
+    def get_edge_list_for_api(self):
+        raw_edges = self.get_edge_list()
+        return [
+            {"source": str(u), "target": str(v), "weight": float(w)}
+            for u, v, w in raw_edges
+        ]
 
     def add_vertex(self, v: str):
         """Добавляет вершину в граф."""
@@ -590,3 +599,63 @@ class Graph:
                 v = parent[v]
 
         return max_flow
+
+    def get_weighted_random_walks(self, walk_length: int, num_walks: int):
+        """Блуждания с учетом весов ребер."""
+        walks = []
+        nodes = list(self._adj_list.keys())
+
+        for _ in range(num_walks):
+            random.shuffle(nodes)
+            for start_node in nodes:
+                walk = [start_node]
+                while len(walk) < walk_length:
+                    cur = walk[-1]
+                    neighbors_dict = self._adj_list[cur]
+
+                    if not neighbors_dict:
+                        break
+
+                    # Извлекаем соседей и их веса
+                    neighbors = list(neighbors_dict.keys())
+                    weights = list(neighbors_dict.values())
+
+                    # Нормализуем веса, чтобы получить вероятности
+                    total_weight = sum(weights)
+                    probabilities = [w / total_weight for w in weights]
+
+                    # Выбираем следующую вершину согласно распределению
+                    next_node = np.random.choice(neighbors, p=probabilities)
+                    walk.append(next_node)
+                walks.append(walk)
+        return walks
+
+
+def generate_social_graph(num_communities=3, nodes_per_comm=15):
+    """ Генерирует граф с четко выраженными сообществами. """
+    g = Graph(is_directed=False, is_weighted=True)
+    communities = []
+
+    node_id = 0
+    for c in range(num_communities):
+        comm_nodes = []
+        for _ in range(nodes_per_comm):
+            name = f"User_{node_id}"
+            g.add_vertex(name)
+            comm_nodes.append(name)
+            node_id += 1
+        communities.append(comm_nodes)
+
+    all_nodes = [n for comm in communities for n in comm]
+    for i, u in enumerate(all_nodes):
+        for j, v in enumerate(all_nodes):
+            if i >= j: continue
+            same = any(u in c and v in c for c in communities)
+
+            if same and random.random() < 0.4:
+                weight = random.uniform(10.0, 20.0)
+                g.add_edge(u, v, weight=weight)
+            elif not same and random.random() < 0.02:
+                weight = random.uniform(0.5, 1.0)
+                g.add_edge(u, v, weight=weight)
+    return g

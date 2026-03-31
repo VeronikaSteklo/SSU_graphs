@@ -1,4 +1,4 @@
-from graph import Graph, GraphError
+from backend.graph import Graph, GraphError
 import sys
 
 
