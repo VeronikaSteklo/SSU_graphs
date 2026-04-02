@@ -509,9 +509,9 @@ class Graph:
             for v, weight in self._adj_list[u].items():
                 dist[u][v] = weight
 
-        for k in nodes:  # k нельзя вставлять в конец
-            for i in nodes:
-                for j in nodes:
+        for i in nodes:  # k нельзя вставлять в конец
+            for j in nodes:
+                for k in nodes:
                     if dist[i][j] > dist[i][k] + dist[k][j]:
                         dist[i][j] = dist[i][k] + dist[k][j]
         return dist
@@ -558,6 +558,7 @@ class Graph:
 
         max_flow = 0
         parent = {}
+        all_paths = []
 
         def bfs():
             visited = {node: False for node in residual_adj}
@@ -575,11 +576,25 @@ class Graph:
             return False
 
         while bfs():
+            path = []
             path_flow = float('inf')
             s = sink
             while s != source:
+                path.append(s)
                 path_flow = min(path_flow, residual_adj[parent[s]][s])
                 s = parent[s]
+            path.append(source)
+            path.reverse()
+
+            edges_info = []
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i + 1]
+                is_reverse = False
+                if v not in self._adj_list.get(u, {}):
+                    is_reverse = True
+                edges_info.append(f"{u}→{v} {'(обратная дуга)' if is_reverse else '(прямая)'}")
+
+            all_paths.append((path.copy(), path_flow, edges_info.copy()))
 
             max_flow += path_flow
             v = sink
@@ -589,4 +604,4 @@ class Graph:
                 residual_adj[v][u] += path_flow
                 v = parent[v]
 
-        return max_flow
+        return max_flow, all_paths

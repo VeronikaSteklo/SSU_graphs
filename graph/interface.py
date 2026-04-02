@@ -380,8 +380,19 @@ class GraphInterface:
         s = input("Введите исток: ")
         t = input("Введите сток: ")
         try:
-            flow = self.graph.find_max_flow(s, t)
-            print(f"\nМаксимальный поток из {s} в {t}: {flow}")
+            max_flow, all_paths = self.graph.find_max_flow(s, t)
+
+            if not all_paths:
+                print(f"\nПуть из {s} в {t} не найден.")
+                return
+
+            for i, (path, path_flow, edges_info) in enumerate(all_paths, start=1):
+                print(f"\nИтерация {i}:")
+                print(f"Путь: {' → '.join(path)} (добавлен поток: {path_flow})")
+                print(f"Ребра: {', '.join(edges_info)}")
+
+            print(f"\nМаксимальный поток из {s} в {t}: {max_flow}")
+
         except Exception as e:
             print(f"[ОШИБКА]: {e}")
 
