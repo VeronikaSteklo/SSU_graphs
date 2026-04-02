@@ -8,7 +8,7 @@ def run_app():
         ["uvicorn", "backend.app:app", "--host", "127.0.0.1", "--port", "8000"]
     )
 
-    time.sleep(3)
+    time.sleep(10)
 
     try:
         subprocess.run(

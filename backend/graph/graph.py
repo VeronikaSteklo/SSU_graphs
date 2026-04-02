@@ -616,22 +616,19 @@ class Graph:
                     if not neighbors_dict:
                         break
 
-                    # Извлекаем соседей и их веса
                     neighbors = list(neighbors_dict.keys())
                     weights = list(neighbors_dict.values())
 
-                    # Нормализуем веса, чтобы получить вероятности
                     total_weight = sum(weights)
                     probabilities = [w / total_weight for w in weights]
 
-                    # Выбираем следующую вершину согласно распределению
                     next_node = np.random.choice(neighbors, p=probabilities)
                     walk.append(next_node)
                 walks.append(walk)
         return walks
 
 
-def generate_social_graph(num_communities=3, nodes_per_comm=15):
+def generate_social_graph(num_communities=3, nodes_per_comm=15, intra_comm_prob=0.4, inter_comm_prob=0.15):
     """ Генерирует граф с четко выраженными сообществами. """
     g = Graph(is_directed=False, is_weighted=True)
     communities = []
@@ -649,13 +646,14 @@ def generate_social_graph(num_communities=3, nodes_per_comm=15):
     all_nodes = [n for comm in communities for n in comm]
     for i, u in enumerate(all_nodes):
         for j, v in enumerate(all_nodes):
-            if i >= j: continue
+            if i >= j:
+                continue
             same = any(u in c and v in c for c in communities)
 
-            if same and random.random() < 0.4:
+            if same and random.random() < intra_comm_prob:
                 weight = random.uniform(10.0, 20.0)
                 g.add_edge(u, v, weight=weight)
-            elif not same and random.random() < 0.02:
-                weight = random.uniform(0.5, 1.0)
+            elif not same and random.random() < inter_comm_prob:
+                weight = random.uniform(5.0, 12.0)
                 g.add_edge(u, v, weight=weight)
     return g
