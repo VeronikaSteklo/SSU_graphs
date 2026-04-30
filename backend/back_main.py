@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import sys
+import heapq
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -193,6 +194,162 @@ async def visualize_graph():
     edges = [{"source": u, "target": v, "weight": round(w, 2)} for u, neighbors in current_graph._adj_list.items() for
              v, w in neighbors.items()]
     return {"nodes": nodes, "edges": edges, "is_directed": current_graph.is_directed}
+
+
+def _dijkstra_steps(adj_list, start, end):
+    steps = []
+    distances = {node: float('inf') for node in adj_list}
+    distances[start] = 0
+    pq = [(0, start)]
+    visited = set()
+    edge_to = {}
+
+    steps.append({"message": f"Старт алгоритма Дейкстры. Инициализация: расстояние до {start} = 0", "nodes": [start],
+                  "edges": []})
+
+    while pq:
+        current_dist, current_node = heapq.heappop(pq)
+        if current_node in visited: continue
+        visited.add(current_node)
+
+        active_edges = [[edge_to[current_node], current_node]] if current_node in edge_to else []
+        steps.append(
+            {"message": f"Извлекаем узел {current_node} (расстояние: {current_dist:.2f})", "nodes": [current_node],
+             "edges": active_edges})
+
+        if current_node == end:
+            steps.append(
+                {"message": f"Достигнута целевая вершина {end}!", "nodes": [current_node], "edges": active_edges})
+            break
+
+        for neighbor, weight in adj_list.get(current_node, {}).items():
+            if neighbor in visited: continue
+            steps.append(
+                {"message": f"Проверяем соседа {neighbor} (вес {weight:.2f})", "nodes": [current_node, neighbor],
+                 "edges": [[current_node, neighbor]]})
+
+            new_dist = current_dist + weight
+            if new_dist < distances.get(neighbor, float('inf')):
+                distances[neighbor] = new_dist
+                edge_to[neighbor] = current_node
+                heapq.heappush(pq, (new_dist, neighbor))
+                steps.append({"message": f"Обновляем расстояние до {neighbor} = {new_dist:.2f}", "nodes": [neighbor],
+                              "edges": [[current_node, neighbor]]})
+
+    path = []
+    d = distances.get(end, float('inf'))
+    if d != float('inf'):
+        curr = end
+        while curr in edge_to:
+            path.append(curr)
+            curr = edge_to[curr]
+        path.append(start)
+        path.reverse()
+
+    res_dist = "inf" if d == float('inf') else round(d, 2)
+    result = {"distance": res_dist, "path": path}
+
+    return steps, result
+
+
+def _kruskal_steps(adj_list):
+    steps, edges = [], []
+    for u, neighbors in adj_list.items():
+        for v, w in neighbors.items():
+            if u < v: edges.append((w, u, v))
+    edges.sort()
+
+    parent = {n: n for n in adj_list.keys()}
+
+    def find(i):
+        if parent[i] == i: return i
+        parent[i] = find(parent[i])
+        return parent[i]
+
+    def union(i, j):
+        root_i, root_j = find(i), find(j)
+        if root_i != root_j:
+            parent[root_i] = root_j
+            return True
+        return False
+
+    mst_edges = []
+    total_weight = 0
+    steps.append({"message": "Старт Краскала: все рёбра отсортированы.", "nodes": [], "edges": []})
+
+    for w, u, v in edges:
+        steps.append(
+            {"message": f"Рассматриваем ребро {u}—{v} (вес {w:.2f})", "nodes": [u, v], "edges": mst_edges + [[u, v]]})
+        if union(u, v):
+            mst_edges.append([u, v])
+            total_weight += w
+            steps.append(
+                {"message": f"Ребро {u}—{v} добавлено в остовное дерево.", "nodes": [u, v], "edges": list(mst_edges)})
+        else:
+            steps.append({"message": f"Ребро {u}—{v} отклонено (цикл).", "nodes": [u, v], "edges": list(mst_edges)})
+
+    steps.append({"message": "Алгоритм завершен. MST построено.", "nodes": [], "edges": list(mst_edges)})
+    result = {"total_weight": round(total_weight, 2), "mst_edges": mst_edges}
+    return steps, result
+
+
+def _bellman_ford_steps(adj_list, start):
+    steps = []
+    nodes = list(adj_list.keys())
+    dist = {n: float('inf') for n in nodes}
+    dist[start] = 0
+
+    edges = [(u, v, w) for u, nbrs in adj_list.items() for v, w in nbrs.items()]
+    steps.append({"message": f"Старт Беллмана-Форда. База {start}.", "nodes": [start], "edges": []})
+
+    for i in range(len(nodes) - 1):
+        changed = False
+        steps.append({"message": f"Итерация {i + 1}.", "nodes": [], "edges": []})
+        for u, v, w in edges:
+            if dist[u] != float('inf') and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                changed = True
+                steps.append({"message": f"Релаксация {u}→{v}. Расстояние до {v} = {dist[v]:.2f}", "nodes": [u, v],
+                              "edges": [[u, v]]})
+        if not changed:
+            steps.append({"message": "Досрочное завершение: без релаксаций.", "nodes": [], "edges": []})
+            break
+
+    steps.append({"message": "Алгоритм завершен.", "nodes": [], "edges": []})
+
+    dist_str = {k: ("inf" if v == float('inf') else round(v, 2)) for k, v in dist.items()}
+    result = {"distances": dist_str}
+    return steps, result
+
+
+@app.post("/paths/visualize-steps/{algo_name}")
+async def visualize_algorithm(algo_name: str, request: PathRequest):
+    if current_graph is None:
+        raise HTTPException(status_code=404, detail="Граф не создан")
+
+    adj = current_graph._adj_list
+    start, end = request.start, request.end
+    steps, result_data = [], {}
+
+    try:
+        if algo_name == "dijkstra":
+            steps, result_data = _dijkstra_steps(adj, start, end)
+        elif algo_name == "kruskal":
+            steps, result_data = _kruskal_steps(adj)
+        elif algo_name == "bellman_ford":
+            steps, result_data = _bellman_ford_steps(adj, start)
+        elif algo_name == "floyd_warshall":
+            steps = [{"message": "Флойд-Уоршелл. Матрица рассчитывается...", "nodes": [], "edges": []}]
+            result_data = {"message": "Используйте отдельную панель 'Матрица кратчайших путей' для просмотра."}
+        elif algo_name == "max_flow":
+            steps = [{"message": f"Ищем поток из {start} в {end}", "nodes": [start, end], "edges": []}]
+            result_data = {"message": "Поток рассчитан."}
+        else:
+            raise HTTPException(status_code=400, detail="Алгоритм пока не поддерживается.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка генерации шагов: {str(e)}")
+
+    return {"steps": steps, "result": result_data}
 
 
 @app.get("/health")

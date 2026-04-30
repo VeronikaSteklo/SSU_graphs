@@ -38,7 +38,7 @@ def main():
     ensure_directories()
 
     backend_cmd = [
-        sys.executable, "-m", "uvicorn", "backend.main:app",
+        sys.executable, "-m", "uvicorn", "backend.back_main:app",
         "--host", "0.0.0.0", "--port", "8000", "--log-level", "info",
         "--reload"
     ]
@@ -48,7 +48,7 @@ def main():
     time.sleep(2)
 
     frontend_cmd = [
-        sys.executable, "-m", "streamlit", "run", "frontend/main.py",
+        sys.executable, "-m", "streamlit", "run", "frontend/front_main.py",
         "--server.port", "8501", "--server.headless", "true",
         "--server.runOnSave", "false"
     ]
