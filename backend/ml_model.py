@@ -9,7 +9,7 @@ class TrafficPredictor:
 
     def __init__(self):
         self.model = None
-        self.base_weights = {}  # Базовые веса ребер
+        self.base_weights = {}
         self.is_trained = False
 
     def train(self, edges_data: list):

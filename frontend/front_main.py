@@ -452,7 +452,7 @@ if viz_data:
                 elif "distances" in algo_result:
                     st.write("**Кратчайшие расстояния от стартовой вершины:**")
                     dist_df = pd.DataFrame(list(algo_result['distances'].items()), columns=["Вершина", "Расстояние"])
-                    st.dataframe(dist_df, use_container_width=True)
+                    st.dataframe(dist_df, width='stretch')
 
                 elif "message" in algo_result:
                     st.info(algo_result["message"])
@@ -510,7 +510,7 @@ if traffic_data and traffic_data.get('predictions') and not st.session_state.get
 
     st.dataframe(
         traffic_df.style.applymap(color_congestion, subset=['congestion_percent']),
-        use_container_width=True
+        width='stretch'
     )
 
 st.divider()
@@ -540,8 +540,8 @@ if st.session_state.get('floyd_matrix'):
 
 
     st.dataframe(
-        df_matrix.style.applymap(highlight_inf),
-        use_container_width=True
+        df_matrix.style.map(highlight_inf),
+        width='stretch'
     )
 
     if st.checkbox("Показать пояснение к матрице"):

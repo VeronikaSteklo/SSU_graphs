@@ -16,7 +16,7 @@ from graph import Graph, GraphError
 from backend.ml_model import TrafficPredictor
 
 app = FastAPI(title="Traffic Routing API", version="1.0")
-
+# добавить поиск с учетом загруженности дороги
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,6 +27,7 @@ app.add_middleware(
 
 current_graph: Optional[Graph] = None
 traffic_model: Optional[TrafficPredictor] = None
+latest_traffic_predictions: Optional[dict] = None
 
 
 class EdgeUpdate(BaseModel):
@@ -80,7 +81,7 @@ async def list_graphs():
 
 @app.post("/graphs/load")
 async def load_graph(payload: dict):
-    global current_graph, traffic_model
+    global current_graph, traffic_model, latest_traffic_predictions
     filename = payload.get("filename")
     if not filename:
         raise HTTPException(status_code=400, detail="Не указано имя файла")
@@ -91,6 +92,8 @@ async def load_graph(payload: dict):
 
         traffic_model = TrafficPredictor()
         traffic_model.train(edges)
+
+        latest_traffic_predictions = None
 
         return {
             "status": "success",
@@ -118,18 +121,12 @@ async def get_graph_info():
 
 @app.post("/traffic/predict")
 async def predict_traffic(context: TimeContext):
+    global latest_traffic_predictions
     if traffic_model is None or current_graph is None:
         raise HTTPException(status_code=404, detail="Модель или граф не инициализированы")
 
     predictions = traffic_model.predict_all_edges(context.hour, context.day_type, context.weather)
-
-    for (u, v), data in predictions.items():
-        try:
-            current_graph.change_weight(u, v, data['current'])
-            if not current_graph.is_directed and v in current_graph._adj_list and u in current_graph._adj_list[v]:
-                current_graph._adj_list[v][u] = data['current']
-        except:
-            pass
+    latest_traffic_predictions = predictions
 
     return {
         "predictions": [
@@ -141,6 +138,39 @@ async def predict_traffic(context: TimeContext):
     }
 
 
+def get_effective_graph() -> Graph:
+    """Возвращает граф с учетом трафика (если есть предсказания) или базовый граф."""
+    if not latest_traffic_predictions:
+        return current_graph
+
+    g = Graph.from_copy(current_graph)
+    for (u, v), data in latest_traffic_predictions.items():
+        try:
+            g.change_weight(u, v, data['current'])
+            if not g.is_directed and v in g._adj_list and u in g._adj_list[v]:
+                g._adj_list[v][u] = data['current']
+        except:
+            pass
+    return g
+
+
+@app.post("/paths/k-shortest")
+async def find_k_shortest_paths(request: PathRequest):
+    if current_graph is None:
+        raise HTTPException(status_code=404, detail="Граф не создан")
+    try:
+        effective_graph = get_effective_graph()
+
+        paths = effective_graph.find_k_shortest_paths(request.start, request.end, request.k)
+
+        if not paths: return {"paths": [], "message": "Пути не найдены"}
+        return {"paths": [{"index": i, "path": p, "total_weight": round(d, 2),
+                           "edges": [(p[j], p[j + 1]) for j in range(len(p) - 1)]}
+                          for i, (d, p) in enumerate(paths, 1)]}
+    except GraphError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/traffic/update-edge")
 async def update_edge_weight(edge: EdgeUpdate):
     if current_graph is None:
@@ -150,20 +180,6 @@ async def update_edge_weight(edge: EdgeUpdate):
         if not current_graph.is_directed:
             current_graph._adj_list[edge.v][edge.u] = edge.weight
         return {"status": "success", "edge": (edge.u, edge.v), "new_weight": edge.weight}
-    except GraphError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.post("/paths/k-shortest")
-async def find_k_shortest_paths(request: PathRequest):
-    if current_graph is None:
-        raise HTTPException(status_code=404, detail="Граф не создан")
-    try:
-        paths = current_graph.find_k_shortest_paths(request.start, request.end, request.k)
-        if not paths: return {"paths": [], "message": "Пути не найдены"}
-        return {"paths": [{"index": i, "path": p, "total_weight": round(d, 2),
-                           "edges": [(p[j], p[j + 1]) for j in range(len(p) - 1)]}
-                          for i, (d, p) in enumerate(paths, 1)]}
     except GraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
